@@ -55,6 +55,40 @@ def load_video(video_path, n_frms=MAX_INT, height=-1, width=-1, sampling="unifor
     msg = f"The video contains {len(indices)} frames sampled at {sec} seconds. "
     return frms, msg
 
+def load_video_direct(frames, av_fps, n_frms=MAX_INT, height=-1, width=-1, sampling="uniform", return_msg = False):
+    '''
+    Analogue of load_video() but does it directly from passed frames
+    '''
+
+    vlen = len(frames)
+    start, end = 0, vlen
+
+    n_frms = min(n_frms, vlen)
+
+    if sampling == "uniform":
+        indices = np.arange(start, end, vlen / n_frms).astype(int).tolist()
+    elif sampling == "headtail":
+        indices_h = sorted(rnd.sample(range(vlen // 2), n_frms // 2))
+        indices_t = sorted(rnd.sample(range(vlen // 2, vlen), n_frms // 2))
+        indices = indices_h + indices_t
+    else:
+        raise NotImplementedError
+
+    # get_batch -> T, H, W, C
+    temp_frms = frames[indices] #vr.get_batch(indices)
+
+    tensor_frms = torch.from_numpy(temp_frms) if type(temp_frms) is not torch.Tensor else temp_frms
+    frms = tensor_frms.permute(3, 0, 1, 2).float()  # (C, T, H, W)
+
+    if not return_msg:
+        return frms
+
+    fps = float(av_fps) #float(vr.get_avg_fps())
+    sec = ", ".join([str(round(f / fps, 1)) for f in indices])
+    # " " should be added in the start and end
+    msg = f"The video contains {len(indices)} frames sampled at {sec} seconds. "
+    return frms, msg
+
 
 class AlproVideoBaseProcessor(BaseProcessor):
     def __init__(self, mean=None, std=None, n_frms=MAX_INT):

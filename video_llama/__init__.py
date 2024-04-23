@@ -16,6 +16,7 @@ from video_llama.datasets.builders import *
 from video_llama.models import *
 from video_llama.processors import *
 from video_llama.tasks import *
+from .inference import *
 
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
