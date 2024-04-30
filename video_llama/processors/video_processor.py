@@ -59,14 +59,19 @@ def load_video_direct(frames, av_fps, n_frms=MAX_INT, height=-1, width=-1, sampl
     '''
     Analogue of load_video() but does it directly from passed frames
     '''
+    
+    decord.bridge.set_bridge("torch")
 
     vlen = len(frames)
     start, end = 0, vlen
 
-    n_frms = min(n_frms, vlen)
+    n_frms = av_fps #min(n_frms, vlen)
 
     if sampling == "uniform":
-        indices = np.arange(start, end, vlen / n_frms).astype(int).tolist()
+        indices = np.arange(start, end, vlen / ((vlen / n_frms))).astype(int).tolist()
+        print('*', vlen, n_frms, vlen/n_frms)
+        print(len(indices), '0')
+
     elif sampling == "headtail":
         indices_h = sorted(rnd.sample(range(vlen // 2), n_frms // 2))
         indices_t = sorted(rnd.sample(range(vlen // 2, vlen), n_frms // 2))
@@ -74,11 +79,21 @@ def load_video_direct(frames, av_fps, n_frms=MAX_INT, height=-1, width=-1, sampl
     else:
         raise NotImplementedError
 
+    print(len(indices), '1')
+
     # get_batch -> T, H, W, C
     temp_frms = frames[indices] #vr.get_batch(indices)
 
     tensor_frms = torch.from_numpy(temp_frms) if type(temp_frms) is not torch.Tensor else temp_frms
-    frms = tensor_frms.permute(3, 0, 1, 2).float()  # (C, T, H, W)
+    # frms = tensor_frms.permute(3, 0, 1, 2).float()  # (T, H, W, C) -> (C, T, H, W)
+
+    # Resize frames to desired height and width
+    # (T, H, W, C) -> (T, C, H, W)
+    frms = torch.nn.functional.interpolate(tensor_frms.permute(0, 3, 1, 2), size=(height, width), mode='bilinear', align_corners=False)
+    # (T, C, H, W) -> (C, T, H, W)
+    frms = frms.permute(1, 0, 2, 3)
+
+    print(frms.size(), 'size')
 
     if not return_msg:
         return frms

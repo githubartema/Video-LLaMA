@@ -34,19 +34,16 @@ class VideoProcessor:
         self.model = model
         self.vis_processor = vis_processor
         self.image_vis_processor = Blip2ImageEvalProcessor()
-        
-        self.VIDEO_MSG = ""
-        self.video_list = []
 
     def run_caption(
         self, 
         prompt: str,
         max_new_tokens=300, 
-        num_beams=1, 
+        num_beams=8, 
         min_length=1, 
         top_p=0.9,
         repetition_penalty=1.0, 
-        length_penalty=1, 
+        length_penalty=0, 
         temperature=1.0, 
         max_length=2000
     ):
@@ -90,6 +87,9 @@ class VideoProcessor:
         return output_text
 
     def upload_video_without_audio(self, frames, av_fps=25):
+
+        self.VIDEO_MSG = ""
+        self.video_list = []
 
         video, self.VIDEO_MSG = load_video_direct(
             frames,
